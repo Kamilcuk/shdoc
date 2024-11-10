@@ -87,7 +87,7 @@ function url_encode(str) {
         split ("1 2 3 4 5 6 7 8 9 A B C D E F", url_encode_hex_tab, " ")
         url_encode_hex_tab[0] = 0
         for ( i=1; i<=255; ++i ) url_encode_ord[ sprintf ("%c", i) "" ] = i + 0
-    }
+    } # "
     len = length(str)
     encoded = ""
     for (i = 1; i <= len; i++) {
@@ -172,7 +172,7 @@ function process_function(text) {
         # Add function documentation to output.
         doc = concat(doc, render_docblock(func_name, description, docblock))
         # Add function link to table of contents.
-        toc = concat(toc, render_toc_item(func_name))
+        toc = concat(toc, render_toc_item(func_name, description))
     }
 
     # Function document has been added to output.
@@ -234,8 +234,13 @@ function render_toc_link(text) {
     return "[" text "](#" url ")"
 }
 
-function render_toc_item(title) {
-    return "* " render_toc_link(title)
+function render_toc_item(title, description, is_variable, is_section) {
+    return \
+        ((is_section == "" && section_block != "") ? "    " : "") \
+        "* " \
+        render_toc_link(title) \
+        (is_variable == "" ? "()" : "") \
+        (description == "" ? "" : " - " substr(gensub(/([^\n]*).*/, "\\1", "g", description), 0, 100))
 }
 
 function unindent(text) {
@@ -500,27 +505,36 @@ function process_at_option(text) {
     }
 }
 
-function render_docblock(func_name, description, docblock) {
+function render_source_link(text) {
+    if (cfg_source_link) {
+        return "[" text "](" cfg_source_link "#L" FNR ")"
+    } else {
+        return text
+    }
+}
+
+function render_docblock(func_name, description, docblock, is_variable) {
     debug("→ render_docblock")
     debug("→ → func_name: [" func_name "]")
     debug("→ → description: [" description "]")
 
     # Reset lines variable to allow for a new array creation.
     delete lines
+    split("", lines)
 
     if (section != "") {
-      lines[0] = render("h2", section)
-      if (section_description != "") {
-        push(lines, section_description)
-        # Add empty line to signal end of description.
-        push(lines, "")
-      }
-      section = ""
-      section_description = ""
-      push(lines, render("h3", func_name))
-    } else {
-      lines[0] = render("h3", func_name)
+        push(lines, render("h2", section))
+        if (section_description != "") {
+            push(lines, section_description)
+            # Add empty line to signal end of description.
+            push(lines, "")
+        }
+        # Add the section to toc.
+        toc = concat(toc, render_toc_item(section, section_description, 0, 1))
+        section = ""
+        section_description = ""
     }
+    push(lines, render("h3", render_source_link(func_name (is_variable ? "" : "()"))))
 
     atLeastOneBadge=0
     if ("deprecated" in docblock) {
@@ -767,8 +781,9 @@ in_description {
 
 /^[[:space:]]*# @section/ {
   debug("→ @section")
-  sub(/^[[:space:]]*# @section /, "")
+  sub(/^[[:space:]]*# @section[[:space:]]*/, "")
   section = $0
+  section_block = $0
 
   next
 }
