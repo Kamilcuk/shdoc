@@ -746,6 +746,7 @@ function debug(msg) {
     reset()
 }
 
+
 in_description {
     if(match($0, /^[^[[:space:]]*#]|^[[:space:]]*# @([a-z]+)|^[[:space:]]*[^#]|^[[:space:]]*$/, matches) && matches[1] != "description") {
         debug("→ → in_description: leave")
@@ -959,16 +960,17 @@ match($0, /^([[:blank:]]*#[[:blank:]]+)@(stdin|stdout|stderr)[[:blank:]]+(.*[^[:
 # If docblock if not empty, and description is set,
 # and if this is not an example,
 # this regex matches:
-# - `function function_name () {`
-# - `function_name () {`
-# - `function_name {`
-/^[[:blank:]]*(function[[:blank:]]+)?([a-zA-Z0-9_\-:-\\.]+)[[:blank:]]*(\([[:blank:]]*\))?[[:blank:]]*\{/ \
-{
+# - `function name () {`
+# - `name () {`
+# - `function name () (`
+# - `name () (`
+/^function[[:blank:]]+([a-zA-Z0-9_\-:-\\.]+)/ || /^([a-zA-Z0-9_\-:-\\.]+)[[:blank:]]*\(\)[[:blank:]]*[{(]/ {
+# /^[[:blank:]]*(function[[:blank:]]+)?([a-zA-Z0-9_\-:-\\.]+)[[:blank:]]*(\([[:blank:]]*\))?[[:blank:]]*[{(]/ {
     process_function($0)
 }
 
 # If line look like a function declaration but is missing opening bracket,
-/^[[:blank:]]*(function[[:blank:]]+)?([a-zA-Z0-9_\-:-\\.]+)[[:blank:]]*(\([[:blank:]]*\))?/ \
+0 && /^[[:blank:]]*(function[[:blank:]]+)?([a-zA-Z0-9_\-:-\\.]+)[[:blank:]]*(\([[:blank:]]*\))?/ \
 {
     # store it for future use
     debug("→ look like a function declaration, store line")
@@ -977,7 +979,7 @@ match($0, /^([[:blank:]]*#[[:blank:]]+)@(stdin|stdout|stderr)[[:blank:]]+(.*[^[:
 }
 
 # Handle lone opening bracket if previous line is a function declaration.
-/^[[:blank:]]*\{/ \
+0 && /^[[:blank:]]*\{/ \
     && function_declaration != "" {
     debug("→ multi-line function declaration.")
     # Process function declaration.
@@ -986,7 +988,7 @@ match($0, /^([[:blank:]]*#[[:blank:]]+)@(stdin|stdout|stderr)[[:blank:]]+(.*[^[:
 
 # Skip empty lines (allow for break in comment),
 # if function_declaration is not empty (i.e. waiting for an opening bracket).
-/^[[:blank:]]*$/ \
+0 && /^[[:blank:]]*$/ \
     && function_declaration != "" {
     debug("→ waiting for opening bracket.")
     next
