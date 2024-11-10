@@ -147,7 +147,7 @@ function process_function(text) {
         # If docblock and description are empty,
         # or if function in example section,
         # skip function declaration.
-        return
+        # return
     }
 
     debug("→ function")
