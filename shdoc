@@ -984,6 +984,27 @@ match($0, /^([[:blank:]]*#[[:blank:]]+)@(stdin|stdout|stderr)[[:blank:]]+(.*[^[:
     process_function($0)
 }
 
+# Process variables
+cfg_variable_rgx && ( \
+    /^(readonly[[:blank:]]+|declare[[:blank:]]+(-[a-z]+[[:blank:]]+)?)?[_a-zA-Z][_a-zA-Z0-9]*=/ || \
+    /^:[[:blank:]]+"$\{([_a-zA-Z][_a-zA-Z0-9]*):=.*$/ \
+) {
+    var_name = gensub( \
+        /^(readonly[[:blank:]]+|declare[[:blank:]]+(-[a-z]+[[:blank:]]+)?)?([_a-zA-Z][_a-zA-Z0-9]*)=.*$/, \
+        "\\3", "g", $0)
+    if (!var_name) {
+        var_name = gensub(/^:[[:blank:]]+"$\{([_a-zA-Z][_a-zA-Z0-9]*):=.*$/, "\\1", "g", $0)
+    }
+    if (var_name ~ cfg_variable) {
+        # Add function documentation to output.
+        doc = concat(doc, render_docblock(var_name, description, docblock, 1))
+        # Add function link to table of contents.
+        toc = concat(toc, render_toc_item(var_name, description, 1))
+        reset()
+    }
+    next
+}
+
 # If line look like a function declaration but is missing opening bracket,
 0 && /^[[:blank:]]*(function[[:blank:]]+)?([a-zA-Z0-9_\-:-\\.]+)[[:blank:]]*(\([[:blank:]]*\))?/ \
 {
