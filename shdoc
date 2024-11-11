@@ -170,9 +170,9 @@ function process_function(text) {
         )
 
         # Add function documentation to output.
-        doc = concat(doc, render_docblock(func_name, description, docblock))
+        doc = concat(doc, render_docblock(func_name, description, docblock, "function"))
         # Add function link to table of contents.
-        toc = concat(toc, render_toc_item(func_name, description))
+        toc = concat(toc, render_toc_item(func_name, description, "function"))
     }
 
     # Function document has been added to output.
@@ -234,12 +234,12 @@ function render_toc_link(text) {
     return "[" text "](#" url ")"
 }
 
-function render_toc_item(title, description, is_variable, is_section) {
+function render_toc_item(title, description, type) {
     return \
-        ((is_section == "" && section_block != "") ? "    " : "") \
+        (type == "section" || section_block == "" ? "" : "    ") \
         "* " \
         render_toc_link(title) \
-        (is_variable == "" ? "()" : "") \
+        (type == "function" ? "()" : "") \
         (description == "" ? "" : " - " substr(gensub(/([^\n]*).*/, "\\1", "g", description), 0, 100))
 }
 
@@ -513,7 +513,7 @@ function render_source_link(text) {
     }
 }
 
-function render_docblock(func_name, description, docblock, is_variable) {
+function render_docblock(func_name, description, docblock, type) {
     debug("→ render_docblock")
     debug("→ → func_name: [" func_name "]")
     debug("→ → description: [" description "]")
@@ -522,19 +522,7 @@ function render_docblock(func_name, description, docblock, is_variable) {
     delete lines
     split("", lines)
 
-    if (section != "") {
-        push(lines, render("h2", section))
-        if (section_description != "") {
-            push(lines, section_description)
-            # Add empty line to signal end of description.
-            push(lines, "")
-        }
-        # Add the section to toc.
-        toc = concat(toc, render_toc_item(section, section_description, 0, 1))
-        section = ""
-        section_description = ""
-    }
-    push(lines, render("h3", render_source_link(func_name (is_variable ? "" : "()"))))
+    push(lines, render(type == "section" ? "h2" : "h3", render_source_link(func_name) (type == "function" ? "()" : "")))
 
     atLeastOneBadge=0
     if ("deprecated" in docblock) {
@@ -567,6 +555,8 @@ function render_docblock(func_name, description, docblock, is_variable) {
     }
 
     if (description != "") {
+        # preserve linebreaks in markdown
+        sub(/\n/, "  \n", description)
         push(lines, description)
         # Add empty line to signal end of description.
         push(lines, "")
@@ -784,9 +774,17 @@ in_description {
   sub(/^[[:space:]]*# @section[[:space:]]*/, "")
   section = $0
   section_block = $0
-
   next
 }
+
+section != "" && /^[[:space:]]*$/{
+    doc = concat(doc, render_docblock(section, description, docblock, "section"))
+    toc = concat(toc, render_toc_item(section, description, "section"))
+    section = ""
+    reset()
+    next
+}
+
 
 /^[[:space:]]*# @example.*/ {
     debug("→ @example")
@@ -997,9 +995,9 @@ cfg_variable_rgx && ( \
     }
     if (var_name ~ cfg_variable) {
         # Add function documentation to output.
-        doc = concat(doc, render_docblock(var_name, description, docblock, 1))
+        doc = concat(doc, render_docblock(var_name, description, docblock, "variable"))
         # Add function link to table of contents.
-        toc = concat(toc, render_toc_item(var_name, description, 1))
+        toc = concat(toc, render_toc_item(var_name, description, "variable"))
         reset()
     }
     next
