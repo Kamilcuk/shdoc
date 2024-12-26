@@ -57,7 +57,7 @@ _Output_: [examples/readme-example.md](examples/readme-example.md)
 ### Source file
 
 ~~~bash
-#!/bin/bash
+#!/usr/bin/env bash
 # @file libexample
 # @brief A library that solves some common problems.
 # @description
@@ -215,7 +215,7 @@ file.
 **Example**
 
 ```bash
-#!/bin/bash
+#!/usr/bin/env bash
 # @name MyLibrary
 ```
 
@@ -229,7 +229,7 @@ A brief line about the project. Can be specified once in the beginning of the fi
 
 **Example**
 ```bash
-#!/bin/bash
+#!/usr/bin/env bash
 # @brief A library to solve a few problems.
 ```
 
@@ -242,7 +242,7 @@ A multiline description of the project/section/function.
 
 **Example**
 ```bash
-#!/bin/bash
+#!/usr/bin/env bash
 # @description A long description of the library.
 # Second line of the project description.
 
