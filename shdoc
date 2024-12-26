@@ -859,7 +859,7 @@ match($0, /^[[:blank:]]*#[[:blank:]]+@(env|warning|constraint|require|feature|de
     arg_text = trim(arg_text)
 
     # Test if @arg is a numbered item (or $@).
-    if(match(arg_text, /^\$([0-9]+|@)[[:space:]]/, contents)) {
+    if(match(arg_text, /^[[]?\$([0-9]+|@)[]]?[[:space:]]/, contents)) {
         debug(" → → found arg $" arg_number)
 
         # Fetch matched values.
