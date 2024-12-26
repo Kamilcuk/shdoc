@@ -448,43 +448,31 @@ function render_docblock_list(docblock, docblock_name, title) {
 #       Argument must be between < and >.
 #   - **-o | --option** : long option with short option version.
 #
-#   To achieve this, process_at_option uses a complex regular expression.
-#   which is decomposed below:
-#
-#   ```awk
-#   # Set optional arg (- and -- options) regex
-#   short_option_regex = "-[[:alnum:]]([[:blank:]]*<[^>]+>)?"
-#   long_option_regex = "--[[:alnum:]][[:alnum:]-]*((=|[[:blank:]]+)<[^>]+>)?"
-#   pipe_separator_regex = "([[:blank:]]*\\|?[[:blank:]]+)"
-#   description_regex = "([^[:blank:]|<-].*)?"
-#
-#   # Build regex matching all options
-#   short_or_long_option_regex = sprintf("(%s|%s)", short_option_regex, long_option_regex)
-#
-#   # Build regex matching multiple options separated by spaces or pipe.
-#   all_options_regex = sprintf("(%s%s)+", short_or_long_option_regex, pipe_separator_regex)
-#
-#   # Build final regex.
-#   optional_arg_regex = sprintf("^(%s)%s$", all_options_regex, description_regex)
-#   ```
-#
-#   Final regex with non-matching groups (unsupported by gawk).
-#
-#   `^((?:(?:-[[:alnum:]](?:[[:blank:]]*<[^>]+>)?|--[[:alnum:]][[:alnum:]-]*(?:(?:=|[[:blank:]]+)<[^>]+>)?)(?:[[:blank:]]*\|?[[:blank:]]+))+)([^[:blank:]|<-].*)?$`
-#
 # @param text   The text to process as an @option entry.
 #
 # @set dockblock["option"] A docblock for correctly formated options.
 # @set dockblock["option-bad"] A docblock for badly formated options.
 function process_at_option(text) {
+    # Set optional arg (- and -- options) regex
+    short_option_regex = "-[[:alnum:]]([[:blank:]]*<[^>]+>)?"
+    long_option_regex = "--[[:alnum:]][[:alnum:]-]*((=|[[:blank:]]+)<[^>]+>)?"
+    pipe_separator_regex = "([[:blank:]]*\\|?[[:blank:]]+)"
+    description_regex = "[[:blank:]]*([^[:blank:]|<-].*)?"
+    # Build regex matching all options
+    short_or_long_option_regex = "(" short_option_regex "|" long_option_regex ")"
+    # Build regex matching multiple options separated by spaces or pipe.
+    all_options_regex = short_or_long_option_regex "(" pipe_separator_regex short_or_long_option_regex ")*"
+    # Build final regex.
+    optional_arg_regex = "^(" all_options_regex ")" description_regex "$"
+    # warn(optional_arg_regex); exit(-1)
 
     # Test if @arg is a command-line option description (starting by - or --).
-    if(match(text, /^(((-[[:alnum:]]([[:blank:]]*<[^>]+>)?|--[[:alnum:]][[:alnum:]-]*((=|[[:blank:]]+)<[^>]+>)?)([[:blank:]]*\|?[[:blank:]]+))+)([^[:blank:]|<-].*)?$/, contents)) {
+    if(match(text, optional_arg_regex, contents)) {
         debug(" → → found correctly formated @option.")
 
         # Fetch matched values.
         term = trim(contents[1])
-        option_description["definition"] = trim(contents[8])
+        option_description["definition"] = trim(contents[12])
 
         # Trim spaces around pipes.
         gsub(/[[:blank:]]+\|[[:blank:]]+/, " | ", term)
