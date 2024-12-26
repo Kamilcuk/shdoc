@@ -193,6 +193,19 @@ function render(type, text) {
     )
 }
 
+function fix_toc_link_format(url) {
+    if (cfg_style == "github") {
+      # @see https://github.com/jch/html-pipeline/blob/master/lib/html/pipeline/toc_filter.rb#L44-L45
+      url = tolower(url)
+      gsub(/[^[:alnum:] _-]/, "", url)
+      # gsub(/_/, "", url)
+      gsub(/ /, "-", url)
+    }
+    # https://github.com/jgm/pandoc/issues/10373
+    gsub(/^_/, "", url)
+    return url
+}
+
 function render_toc_link(text) {
     # URL processing
     # @see Regexp sourced from https://stackoverflow.com/questions/3183444/check-for-valid-link-url
@@ -220,16 +233,7 @@ function render_toc_link(text) {
         return text
     }
 
-    url = text
-    if (cfg_style == "github") {
-      # @see https://github.com/jch/html-pipeline/blob/master/lib/html/pipeline/toc_filter.rb#L44-L45
-      url = tolower(url)
-      gsub(/[^[:alnum:] _-]/, "", url)
-      # gsub(/_/, "", url)
-      gsub(/ /, "-", url)
-    }
-    # https://github.com/jgm/pandoc/issues/10373
-    gsub(/^_/, "", url)
+    url = fix_toc_link_format(text)
 
     return "[" text "](#" url ")"
 }
@@ -510,7 +514,12 @@ function render_docblock(func_name, description, docblock, type) {
     delete lines
     split("", lines)
 
-    push(lines, render(type == "section" ? "h2" : "h3", render_source_link(func_name) (type == "function" ? "()" : "")))
+    push(lines, render( \
+            type == "section" ? "h2" : "h3", \
+            render_source_link(func_name) \
+            (type == "function" ? "()" : "") \
+            " [🔗](#" fix_toc_link_format(func_name) ")" \
+    ))
 
     atLeastOneBadge=0
     if ("deprecated" in docblock) {
