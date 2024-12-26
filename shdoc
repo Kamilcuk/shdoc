@@ -689,6 +689,13 @@ function render_docblock(func_name, description, docblock, type) {
         push(lines, "")
     }
 
+    if ("shellcheck" in docblock) {
+        push(lines, render("h4", "Shellcheck"))
+        push(lines, docblock["shellcheck"])
+        # Add empty line to signal end of list in markdown.
+        push(lines, "")
+    }
+
     result = join(lines)
     return result
 }
@@ -741,12 +748,8 @@ function debug(msg) {
     debug("→ @description")
     in_description = 1
     in_example = 0
-
     handle_description()
-
-    reset()
 }
-
 
 in_description {
     if(match($0, /^[^[[:space:]]*#]|^[[:space:]]*# @([a-z]+)|^[[:space:]]*[^#]|^[[:space:]]*$/, matches) && matches[1] != "description") {
@@ -765,6 +768,20 @@ in_description {
         next
     }
 }
+
+/^[[:space:]]*# shellcheck/ {
+    sub(/^[[:space:]]*# shellcheck[[:space:]]+disable=/, "")
+    gsub(/SC/, "")
+    split($0, shellcheck_disable, "[, ]")
+    for (i in shellcheck_disable) {
+        i = shellcheck_disable[i]
+        docblock["shellcheck"] = \
+                   (docblock["shellcheck"] ? docblock["shellcheck"] " " : "") \
+                   "[SC" i "](https://www.shellcheck.net/wiki/SC" i ")"
+    }
+    next
+}
+
 
 /^[[:space:]]*# @section/ {
   debug("→ @section")
